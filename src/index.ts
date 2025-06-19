@@ -39,6 +39,10 @@ class TravelProgressBot {
     console.log(`📅 Başlangıç: ${this.startTime.format('DD/MM/YYYY HH:mm')}`);
     console.log(`📅 Bitiş: ${this.endTime.format('DD/MM/YYYY HH:mm')}`);
     console.log(`📱 WhatsApp Numaraları (${this.phoneNumbers.length}):`, this.phoneNumbers);
+    
+    // Session durumu hakkında bilgi ver
+    const sessionPath = process.env.SESSION_PATH || './session';
+    console.log(`💾 Session klasörü: ${sessionPath}`);
   }
 
   private validateEnvironmentVariables(): void {
@@ -145,7 +149,7 @@ class TravelProgressBot {
   }
 
   private setupCronJob(): void {
-    // Her 30 dakikada bir çalış
+    // Her 5 dakikada bir çalış
     cron.schedule('*/30 * * * *', async () => {
       console.log('🔄 Scheduled update çalışıyor...');
       await this.sendProgressUpdate();
@@ -156,17 +160,22 @@ class TravelProgressBot {
 
   public async start(): Promise<void> {
     try {
-      // WhatsApp bağlantısını başlat
-      await this.whatsappBot.initialize().then(async () => {
-        // İlk güncellemeyi gönder
-        console.log('📤 İlk progress güncellemesi gönderiliyor...');
-        await this.sendProgressUpdate();
-      })
+      // WhatsApp bağlantısını başlat (ama henüz hazır olmayabilir)
+      console.log('🔄 WhatsApp Client başlatılıyor...');
+      await this.whatsappBot.initialize();
+
+      // Client'in tamamen hazır olmasını bekle
+      console.log('⏳ WhatsApp Client hazır olması bekleniyor...');
+      await this.whatsappBot.waitUntilReady();
+
+      // Artık güvenle ilk güncellemeyi gönderebiliriz
+      console.log('📤 İlk progress güncellemesi gönderiliyor...');
+      await this.sendProgressUpdate();
 
       // Cron job'ı kur
       this.setupCronJob();
 
-      console.log('🎉 Bot başarıyla başlatıldı ve çalışıyor!');
+      console.log('🎉 Bot tamamen başlatıldı ve çalışıyor!');
 
     } catch (error) {
       console.error('❌ Bot başlatılırken hata:', error);

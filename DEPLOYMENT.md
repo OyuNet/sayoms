@@ -38,15 +38,23 @@ bun start
 
 ## 📱 WhatsApp Kurulumu
 
-1. Bot başlatıldığında **terminalde QR kod görseli** otomatik gösterilir
+### İlk Kurulum (Sadece bir kez)
+1. Bot ilk çalıştırıldığında **terminalde QR kod görseli** otomatik gösterilir
 2. Aynı zamanda `qr-code.png` dosyası oluşturulur
 3. QR kodu WhatsApp uygulaması ile terminalde veya PNG dosyasından okutun  
-4. Session otomatik kaydedilir, tekrar QR okutmaya gerek kalmaz
+4. **Session otomatik kaydedilir** (`./session` klasöründe)
+5. QR kod dosyaları otomatik temizlenir
 
-### QR Kod Özellikleri
+### Sonraki Çalıştırmalar
+- ✅ **QR kod GEREKMİYOR** - Kayıtlı session kullanılır
+- ✅ Direkt bağlanır ve çalışmaya başlar
+- ⚠️ Session bozulursa: `rm -rf ./session` komutu ile temizleyin
+
+### QR Kod Özellikleri (Sadece ilk seferde)
 - 🖥️ **Terminal ASCII QR** - Direkt konsolda görsel
 - 📄 **PNG Dosyası** - qr-code.png (300x300px)
 - 📝 **Text Backup** - qr-code.txt (manuel kullanım için)
+- 🧹 **Otomatik temizlik** - Session kaydedildikten sonra QR dosyaları silinir
 
 ## 🔄 PM2 ile Production Kurulumu
 
@@ -143,9 +151,17 @@ pm2 save
    sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
    ```
 
-2. **WhatsApp Bağlantı Sorunu**
-   - Session klasörünü silin: `rm -rf ./session`
-   - Bot'u yeniden başlatın ve QR kodu tekrar okutun
+2. **WhatsApp Bağlantı Sorunu / Her seferinde QR kod istiyor**
+   ```bash
+   # Session dosyalarını tamamen temizle
+   rm -rf ./session
+   
+   # QR kod dosyalarını da temizle
+   rm -f qr-code.png qr-code.txt
+   
+   # Bot'u yeniden başlat
+   bun start
+   ```
 
 3. **.env Dosyası Bulunamıyor**
    - Dosya adının tam olarak `.env` olduğunu kontrol edin

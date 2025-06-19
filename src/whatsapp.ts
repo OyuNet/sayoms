@@ -7,12 +7,25 @@ import QRCode from 'qrcode';
 export class WhatsAppBot {
   private client: Client;
   private isReady: boolean = false;
+  private readyPromise: Promise<void>;
+  private readyResolve!: () => void;
 
   constructor() {
+    // Ready promise'i oluştur
+    this.readyPromise = new Promise<void>((resolve) => {
+      this.readyResolve = resolve;
+    });
+
+    const sessionPath = process.env.SESSION_PATH || './session';
+    
+    // Session klasörünü kontrol et ve oluştur
+    this.ensureSessionDirectory(sessionPath);
+    
     // LocalAuth kullanarak session'ı kaydet
     this.client = new Client({
       authStrategy: new LocalAuth({
-        dataPath: process.env.SESSION_PATH || './session'
+        dataPath: sessionPath,
+        clientId: 'travel-progress-bot'
       }),
       puppeteer: {
         headless: true,
@@ -32,10 +45,29 @@ export class WhatsAppBot {
     this.setupEventHandlers();
   }
 
+  private ensureSessionDirectory(sessionPath: string): void {
+    try {
+      if (!fs.existsSync(sessionPath)) {
+        fs.mkdirSync(sessionPath, { recursive: true });
+        console.log(`📁 Session klasörü oluşturuldu: ${sessionPath}`);
+      } else {
+        console.log(`📁 Session klasörü mevcut: ${sessionPath}`);
+        // Session dosyalarının varlığını kontrol et
+        const sessionFiles = fs.readdirSync(sessionPath);
+        if (sessionFiles.length > 0) {
+          console.log(`✅ Kayıtlı session bulundu (${sessionFiles.length} dosya). QR kod gerekmeyebilir.`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Session klasörü oluşturulamadı:', error);
+    }
+  }
+
   private setupEventHandlers(): void {
-    // QR kodu konsola yazdır
+    // QR kodu konsola yazdır (sadece session yoksa)
     this.client.on('qr', async (qr) => {
-      console.log('\n🔳 QR Kodu alındı! WhatsApp uygulaması ile aşağıdaki QR kodunu okutun:\n');
+      console.log('\n🔳 Yeni QR Kodu oluşturuldu! WhatsApp uygulaması ile aşağıdaki QR kodunu okutun:\n');
+      console.log('⚠️  Bu QR kodu bir kez okutulduktan sonra session kaydedilecek ve bir daha gerekmeyecek.\n');
       
       // QR kodunu terminalde görsel olarak göster
       qrTerminal.generate(qr, { small: true }, (qrString) => {
@@ -48,24 +80,42 @@ export class WhatsAppBot {
       // QR kodunu metin olarak da kaydet (backup)
       this.saveQRCodeAsText(qr);
       
-      console.log('\n📱 QR kodu taratın veya qr-code.png dosyasını açarak telefonunuzla okutun\n');
+      console.log('\n📱 QR kodu taratın veya qr-code.png dosyasını açarak telefonunuzla okutun');
+      console.log('💾 Okutulduktan sonra session kaydedilecek ve bir daha QR kod gerekmeyecek\n');
+    });
+
+    // Session yükleniyor
+    this.client.on('loading_screen', (percent, message) => {
+      console.log(`⏳ Session yükleniyor: ${percent}% - ${message}`);
+    });
+
+    // Session kimlik doğrulaması
+    this.client.on('authenticated', () => {
+      console.log('✅ Session kimlik doğrulaması başarılı! QR kod gerekmedi.');
     });
 
     // Client hazır olduğunda
     this.client.on('ready', () => {
-      console.log('WhatsApp Client hazır!');
+      console.log('🎉 WhatsApp Client hazır! Bot çalışmaya başlıyor...');
       this.isReady = true;
+      
+      // Session başarıyla yüklendiğinde QR kod dosyalarını temizle
+      this.cleanupQRFiles();
+      
+      // Ready promise'i resolve et
+      this.readyResolve();
     });
 
     // Bağlantı kesildiğinde
     this.client.on('disconnected', (reason) => {
-      console.log('WhatsApp Client bağlantısı kesildi:', reason);
+      console.log('❌ WhatsApp Client bağlantısı kesildi:', reason);
       this.isReady = false;
     });
 
     // Hata durumları
     this.client.on('auth_failure', (msg) => {
-      console.error('Kimlik doğrulama hatası:', msg);
+      console.error('❌ Kimlik doğrulama hatası:', msg);
+      console.error('🔧 Session dosyalarını silin ve yeniden deneyin: rm -rf ./session');
     });
   }
 
@@ -91,6 +141,22 @@ export class WhatsAppBot {
       console.log('📝 QR kodu qr-code.txt dosyasına kaydedildi (backup).');
     } catch (error) {
       console.error('❌ QR kod text kaydedilemedi:', error);
+    }
+  }
+
+  private cleanupQRFiles(): void {
+    try {
+      // QR kod dosyalarını sil (session kaydedildikten sonra gerekmiyor)
+      if (fs.existsSync('qr-code.png')) {
+        fs.unlinkSync('qr-code.png');
+        console.log('🧹 QR kod PNG dosyası temizlendi (artık gerekmiyor).');
+      }
+      if (fs.existsSync('qr-code.txt')) {
+        fs.unlinkSync('qr-code.txt');
+        console.log('🧹 QR kod text dosyası temizlendi (artık gerekmiyor).');
+      }
+    } catch (error) {
+      console.warn('⚠️ QR kod dosyaları temizlenirken hata (önemli değil):', error);
     }
   }
 
@@ -185,6 +251,10 @@ export class WhatsAppBot {
 
   public isClientReady(): boolean {
     return this.isReady;
+  }
+
+  public async waitUntilReady(): Promise<void> {
+    return this.readyPromise;
   }
 
   public async destroy(): Promise<void> {
