@@ -162,11 +162,17 @@ class TravelProgressBot {
     try {
       // WhatsApp bağlantısını başlat (ama henüz hazır olmayabilir)
       console.log('🔄 WhatsApp Client başlatılıyor...');
+      
+      // Timeout ile initialize - 2 dakika
+      const startTime = Date.now();
       await this.whatsappBot.initialize();
+      console.log(`⏱️ Initialize süresi: ${Date.now() - startTime}ms`);
 
-      // Client'in tamamen hazır olmasını bekle
+      // Client'in tamamen hazır olmasını bekle - 3 dakika max
       console.log('⏳ WhatsApp Client hazır olması bekleniyor...');
+      const readyStartTime = Date.now();
       await this.whatsappBot.waitUntilReady();
+      console.log(`⏱️ Ready süresi: ${Date.now() - readyStartTime}ms`);
 
       // Artık güvenle ilk güncellemeyi gönderebiliriz
       console.log('📤 İlk progress güncellemesi gönderiliyor...');
@@ -179,6 +185,19 @@ class TravelProgressBot {
 
     } catch (error) {
       console.error('❌ Bot başlatılırken hata:', error);
+      
+      // Session sorunu olabilir mi?
+      if (error instanceof Error) {
+        if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+          console.error('');
+          console.error('🔧 ÇÖZÜM ÖNERİSİ:');
+          console.error('   Session dosyaları bozuk olabilir. Temizlemek için:');
+          console.error('   bun run reset-session');
+          console.error('   Sonra yeniden başlatın: bun start');
+          console.error('');
+        }
+      }
+      
       process.exit(1);
     }
   }

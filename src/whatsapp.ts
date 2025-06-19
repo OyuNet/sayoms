@@ -29,6 +29,7 @@ export class WhatsAppBot {
       }),
       puppeteer: {
         headless: true,
+        timeout: 60000, // 60 saniye timeout
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -37,7 +38,10 @@ export class WhatsAppBot {
           '--no-first-run',
           '--no-zygote',
           '--single-process',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--disable-extensions',
+          '--disable-background-timer-throttling',
+          '--disable-renderer-backgrounding'
         ]
       }
     });
@@ -92,6 +96,16 @@ export class WhatsAppBot {
     // Session kimlik doğrulaması
     this.client.on('authenticated', () => {
       console.log('✅ Session kimlik doğrulaması başarılı! QR kod gerekmedi.');
+    });
+
+    // Change state events - debug için
+    this.client.on('change_state', (state) => {
+      console.log('🔄 WhatsApp state değişti:', state);
+    });
+
+    // Debug için tüm eventleri logla
+    this.client.on('message', () => {
+      // Silent - sadece bağlantının çalıştığını görmek için
     });
 
     // Client hazır olduğunda
@@ -163,9 +177,20 @@ export class WhatsAppBot {
   public async initialize(): Promise<void> {
     try {
       console.log('WhatsApp Client başlatılıyor...');
-      await this.client.initialize();
+      
+      // Timeout ile initialize
+      const initTimeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Initialize timeout - 2 dakika geçti')), 120000);
+      });
+      
+      await Promise.race([
+        this.client.initialize(),
+        initTimeout
+      ]);
+      
+      console.log('✅ WhatsApp Client initialize tamamlandı');
     } catch (error) {
-      console.error('WhatsApp Client başlatılırken hata:', error);
+      console.error('❌ WhatsApp Client başlatılırken hata:', error);
       throw error;
     }
   }
@@ -254,7 +279,19 @@ export class WhatsAppBot {
   }
 
   public async waitUntilReady(): Promise<void> {
-    return this.readyPromise;
+    console.log('⏳ WhatsApp Client ready event bekleniyor...');
+    
+    // Timeout ile ready bekleme
+    const readyTimeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Ready timeout - 3 dakika geçti')), 180000);
+    });
+    
+    await Promise.race([
+      this.readyPromise,
+      readyTimeout
+    ]);
+    
+    console.log('✅ WhatsApp Client ready event geldi');
   }
 
   public async destroy(): Promise<void> {

@@ -151,7 +151,16 @@ pm2 save
    sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
    ```
 
-2. **WhatsApp Bağlantı Sorunu / Her seferinde QR kod istiyor**
+2. **WhatsApp Bağlantı Sorunu / Başlatma aşamasında takılma**
+   ```bash
+   # Hızlı çözüm - Session temizleme scripti
+   bun run reset-session
+   
+   # Sonra yeniden başlat
+   bun start
+   ```
+   
+   **Manuel temizleme:**
    ```bash
    # Session dosyalarını tamamen temizle
    rm -rf ./session
