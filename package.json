@@ -1,0 +1,34 @@
+{
+  "name": "sayoms",
+  "version": "1.0.0",
+  "description": "Şehirlerarası Otobüs Yolculuğu Kalan Süre Progress Bar WhatsApp Botu",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun"
+  },
+  "dependencies": {
+    "canvas": "^3.1.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.1.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.0.3",
+    "@types/qrcode": "^1.5.5",
+    "@types/qrcode-terminal": "^0.12.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "keywords": ["whatsapp", "bot", "progress", "travel", "bus"],
+  "author": "Arda",
+  "license": "MIT"
+}
